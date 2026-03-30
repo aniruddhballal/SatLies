@@ -10,9 +10,9 @@ const C = {
   orbit:   '#38bdf8',
   ground:  '#4ade80',
   burn:    '#fb923c',
-  muted:   '#475569',
-  textDim: '#94a3b8',
-  text:    '#e2e8f0',
+  muted:   '#94a3b8',
+  textDim: '#cbd5e1',
+  text:    '#f1f5f9',
   white:   '#ffffff',
 }
 
@@ -33,8 +33,8 @@ function SliderRow({ label, value, min, max, step = 1, unit = '', onChange, colo
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
-        <span style={{ fontSize: 11, fontFamily: 'monospace', color }}>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+        <span style={{ fontSize: 13, fontFamily: 'monospace', color }}>
           {value}<span style={{ color: C.muted, fontSize: 9 }}>{unit}</span>
         </span>
       </div>
@@ -53,7 +53,7 @@ function SliderRow({ label, value, min, max, step = 1, unit = '', onChange, colo
 // ── Section divider ───────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.12em', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 12 }}>
+    <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 12 }}>
       {children}
     </div>
   )
@@ -63,7 +63,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function Toggle({ active, onToggle, label }: { active: boolean; onToggle: () => void; label: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-      <span style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
+      <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
       <button
         onClick={onToggle}
         style={{
@@ -214,7 +214,7 @@ export default function LeftPanel() {
             <SliderRow label="Min Elevation" value={groundConfig.min_elevation_deg} min={0}    max={45}   unit="°"   color={C.ground} onChange={v => setGroundConfig({ min_elevation_deg: v })} />
             <SliderRow label="Sim Periods"   value={groundConfig.num_periods}       min={1}    max={15}   step={1}   color={C.ground} onChange={v => setGroundConfig({ num_periods: v })} />
             <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Station Name</div>
+              <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Station Name</div>
               <input
                 type="text"
                 value={groundConfig.station_name}

@@ -14,8 +14,8 @@ const C = {
   ground:    '#4ade80',
   burn:      '#fb923c',
   muted:     '#475569',
-  text:      '#e2e8f0',
-  textDim:   '#94a3b8',
+  text:      '#f1f5f9',
+  textDim:   '#cbd5e1',
   red:       '#f87171',
 }
 
@@ -25,8 +25,8 @@ function StatRow({ label, value, unit = '', accent }: {
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-      <span style={{ fontSize: 10, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
-      <span style={{ fontSize: 12, fontFamily: 'monospace', color: accent ?? C.orbit }}>
+      <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+      <span style={{ fontSize: 13, fontFamily: 'monospace', color: accent ?? C.orbit }}>
         {value}<span style={{ color: C.muted, marginLeft: 3, fontSize: 10 }}>{unit}</span>
       </span>
     </div>
@@ -36,7 +36,7 @@ function StatRow({ label, value, unit = '', accent }: {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.12em', paddingBottom: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
+      <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', paddingBottom: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
         {title}
       </div>
       {children}
@@ -68,11 +68,11 @@ function DvBar({ dv1, dv2, total }: { dv1: number; dv2: number; total: number })
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: 2, background: C.burn }} />
-          <span style={{ fontSize: 9, fontFamily: 'monospace', color: C.textDim }}>Burn 1 · {dv1} m/s</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.textDim }}>Burn 1 · {dv1} m/s</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: 2, background: '#fbbf24' }} />
-          <span style={{ fontSize: 9, fontFamily: 'monospace', color: C.textDim }}>Burn 2 · {dv2} m/s</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.textDim }}>Burn 2 · {dv2} m/s</span>
         </div>
       </div>
     </div>
@@ -140,7 +140,7 @@ export default function RightPanel() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: '"Space Grotesk", sans-serif' }}>
       {/* Header */}
       <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <span style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {activeTab === 'orbit' ? 'Orbital Data' : activeTab === 'mission' ? 'Mission Data' : 'Ground Data'}
         </span>
       </div>
@@ -273,7 +273,7 @@ export default function RightPanel() {
                     </AreaChart>
                   </ResponsiveContainer>
                 </ChartBox>
-                <p style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, marginTop: 4 }}>dashed line = 5° min elevation</p>
+                <p style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginTop: 4 }}>dashed line = 5° min elevation</p>
               </Section>
             )}
           </>

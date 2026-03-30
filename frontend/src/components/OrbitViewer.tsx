@@ -1,312 +1,284 @@
-import { useRef, useMemo, useEffect } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Stars, Line } from '@react-three/drei'
-import * as THREE from 'three'
 import { useStore } from '../store/useStore'
-import type { GroundPoint } from '../types/api'
+import {
+  AreaChart, Area, LineChart, Line,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine
+} from 'recharts'
 
-const R_EARTH_KM = 6371
-
-function toUnit(km: number) {
-  return km / R_EARTH_KM
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const C = {
+  bg:        '#020409',
+  bg2:       '#030812',
+  bg3:       '#060e1e',
+  border:    '#0a1628',
+  orbit:     '#38bdf8',
+  ground:    '#4ade80',
+  burn:      '#fb923c',
+  muted:     '#475569',
+  text:      '#f1f5f9',
+  textDim:   '#cbd5e1',
+  red:       '#f87171',
 }
 
-// Convert geographic lat/lon to a 3D point on the Earth surface (r = surface radius in scene units)
-function latLonToVec3(lat: number, lon: number, r = 1.002): THREE.Vector3 {
-  const phi   = (90 - lat) * (Math.PI / 180)
-  const theta = (lon + 180) * (Math.PI / 180)
-  return new THREE.Vector3(
-    r * Math.sin(phi) * Math.cos(theta),
-    r * Math.cos(phi),
-    r * Math.sin(phi) * Math.sin(theta)
-  )
-}
-
-// ── Earth ─────────────────────────────────────────────────────────────────────
-function Earth() {
-  const meshRef = useRef<THREE.Mesh>(null)
-  useFrame((_, delta) => {
-    if (meshRef.current) meshRef.current.rotation.y += delta * 0.03
-  })
+// ── Primitives ────────────────────────────────────────────────────────────────
+function StatRow({ label, value, unit = '', accent }: {
+  label: string; value: string | number; unit?: string; accent?: string
+}) {
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[1, 64, 64]} />
-      <meshPhongMaterial color="#1a4a7a" emissive="#0a2040" specular="#4488cc" shininess={20} />
-      <mesh>
-        <sphereGeometry args={[1.001, 36, 18]} />
-        <meshBasicMaterial color="#1e3a5f" wireframe opacity={0.12} transparent />
-      </mesh>
-    </mesh>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+      <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+      <span style={{ fontSize: 13, fontFamily: 'monospace', color: accent ?? C.orbit }}>
+        {value}<span style={{ color: C.muted, marginLeft: 3, fontSize: 10 }}>{unit}</span>
+      </span>
+    </div>
   )
 }
 
-// ── Atmosphere ────────────────────────────────────────────────────────────────
-function Atmosphere() {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <mesh>
-      <sphereGeometry args={[1.06, 32, 32]} />
-      <meshBasicMaterial color="#1a6090" transparent opacity={0.07} side={THREE.BackSide} />
-    </mesh>
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', paddingBottom: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
+        {title}
+      </div>
+      {children}
+    </div>
   )
 }
 
-// ── Orbit path (ECI positions in km) ─────────────────────────────────────────
-function OrbitPath({ positions }: { positions: [number, number, number][] }) {
-  const points = useMemo(
-    () => positions.map(([x, y, z]) => new THREE.Vector3(toUnit(x), toUnit(z), toUnit(y))),
-    [positions]
-  )
-  if (points.length < 2) return null
-  return <Line points={points} color="#38bdf8" lineWidth={1.5} transparent opacity={0.8} />
-}
-
-// ── Ground track line on Earth surface ───────────────────────────────────────
-// Splits the track into segments whenever there's a big lon jump (antimeridian wrap)
-function GroundTrack({ track }: { track: GroundPoint[] }) {
-  const segments = useMemo(() => {
-    if (track.length < 2) return []
-
-    const segs: THREE.Vector3[][] = []
-    let current: THREE.Vector3[] = []
-
-    for (let i = 0; i < track.length; i++) {
-      const pt = latLonToVec3(track[i].lat, track[i].lon)
-
-      if (i > 0) {
-        const lonDiff = Math.abs(track[i].lon - track[i - 1].lon)
-        if (lonDiff > 180) {
-          // Antimeridian crossing — start a new segment
-          if (current.length > 1) segs.push(current)
-          current = []
-        }
-      }
-      current.push(pt)
-    }
-    if (current.length > 1) segs.push(current)
-    return segs
-  }, [track])
-
-  if (segments.length === 0) return null
-
+function ChartBox({ children, label }: { children: React.ReactNode; label: string }) {
   return (
-    <>
-      {segments.map((seg, i) => (
-        <Line
-          key={i}
-          points={seg}
-          color="#4ade80"
-          lineWidth={1.2}
-          transparent
-          opacity={0.6}
-        />
-      ))}
-    </>
+    <div style={{ background: C.bg3, borderRadius: 8, padding: '8px 4px 4px', marginTop: 4 }}>
+      {children}
+      <p style={{ textAlign: 'center', fontSize: 9, fontFamily: 'monospace', color: C.border, marginTop: 2 }}>{label}</p>
+    </div>
   )
 }
 
-// ── Satellite dot ─────────────────────────────────────────────────────────────
-// simSpeed: how many seconds of sim time pass per real second
-// e.g. simSpeed=60 means 1 real second = 1 sim minute (good for LEO ~92 min period)
-const SIM_SPEED = 60 // 1 real second = 60 sim seconds
-
-function Satellite({ positions, times }: { positions: [number, number, number][]; times: number[] }) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const simTimeRef = useRef(0) // accumulated simulation time in seconds
-
-  // Reset to start whenever a new simulation comes in
-  useEffect(() => { simTimeRef.current = 0 }, [positions])
-
-  useFrame((_, delta) => {
-    if (!meshRef.current || positions.length === 0 || times.length === 0) return
-
-    // Advance sim time
-    simTimeRef.current += delta * SIM_SPEED
-
-    // Wrap around when we exceed the simulation duration
-    const totalDuration = times[times.length - 1]
-    simTimeRef.current = simTimeRef.current % totalDuration
-
-    // Binary search for the closest time index
-    let lo = 0, hi = times.length - 1
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (times[mid] < simTimeRef.current) lo = mid + 1
-      else hi = mid
-    }
-
-    const [x, y, z] = positions[lo]
-    meshRef.current.position.set(toUnit(x), toUnit(z), toUnit(y))
-  })
-
+// ── Delta-V bar visual ────────────────────────────────────────────────────────
+function DvBar({ dv1, dv2, total }: { dv1: number; dv2: number; total: number }) {
+  const pct1 = (dv1 / total) * 100
+  const pct2 = (dv2 / total) * 100
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[0.022, 10, 10]} />
-      <meshBasicMaterial color="#ffffff" />
-      <pointLight color="#38bdf8" intensity={0.6} distance={0.6} />
-    </mesh>
-  )
-}
-
-// ── Ground station marker + visibility cone ───────────────────────────────────
-function GroundStationMarker({ lat, lon }: { lat: number; lon: number }) {
-  const pos = latLonToVec3(lat, lon, 1.012)
-
-  // Horizon cone — a faint disc showing the ~5° visibility footprint
-  const conePoints = useMemo(() => {
-    const pts: THREE.Vector3[] = []
-    const horizonRadius = 0.18  // approximate visibility footprint in scene units
-    const normal = latLonToVec3(lat, lon, 1.0).normalize()
-    // Build two perpendicular vectors to normal
-    const up = Math.abs(normal.y) < 0.99 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
-    const tangent1 = new THREE.Vector3().crossVectors(normal, up).normalize()
-    const tangent2 = new THREE.Vector3().crossVectors(normal, tangent1).normalize()
-
-    for (let i = 0; i <= 64; i++) {
-      const angle = (i / 64) * Math.PI * 2
-      const pt = new THREE.Vector3()
-        .addScaledVector(tangent1, Math.cos(angle) * horizonRadius)
-        .addScaledVector(tangent2, Math.sin(angle) * horizonRadius)
-        .addScaledVector(normal, 1.002)
-      pts.push(pt)
-    }
-    return pts
-  }, [lat, lon])
-
-  return (
-    <>
-      {/* Station dot */}
-      <mesh position={[pos.x, pos.y, pos.z]}>
-        <sphereGeometry args={[0.018, 10, 10]} />
-        <meshBasicMaterial color="#4ade80" />
-        <pointLight color="#4ade80" intensity={0.4} distance={0.4} />
-      </mesh>
-      {/* Visibility footprint ring */}
-      <Line points={conePoints} color="#4ade80" lineWidth={0.8} transparent opacity={0.3} />
-    </>
-  )
-}
-
-// ── Transfer orbit ────────────────────────────────────────────────────────────
-function TransferOrbit({ points }: { points: [number, number, number][] }) {
-  const threePoints = useMemo(
-    () => points.map(([x, y, z]) => new THREE.Vector3(toUnit(x), toUnit(z), toUnit(y))),
-    [points]
-  )
-  if (threePoints.length < 2) return null
-  return <Line points={threePoints} color="#fb923c" lineWidth={1.5} transparent opacity={0.85} dashed dashScale={2} />
-}
-
-// ── Target orbit ring ─────────────────────────────────────────────────────────
-function TargetOrbitRing({ altitude_km, color = '#4ade80' }: { altitude_km: number; color?: string }) {
-  const r = toUnit(R_EARTH_KM + altitude_km)
-  const points = useMemo(() => {
-    const pts: THREE.Vector3[] = []
-    for (let i = 0; i <= 128; i++) {
-      const a = (i / 128) * Math.PI * 2
-      pts.push(new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a)))
-    }
-    return pts
-  }, [r])
-  return <Line points={points} color={color} lineWidth={1} transparent opacity={0.35} />
-}
-
-// ── Scene ─────────────────────────────────────────────────────────────────────
-function Scene() {
-  const { activeTab, orbitResult, missionResult, groundResult, satConfig, missionConfig, groundConfig } = useStore()
-
-  const showOrbit   = activeTab === 'orbit'   && !!orbitResult
-  const showMission = activeTab === 'mission' && !!missionResult
-  const showGround  = activeTab === 'ground'  && !!groundResult
-
-  return (
-    <>
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[5, 3, 5]} intensity={1.1} color="#fff9e6" />
-      <Stars radius={100} depth={50} count={4000} factor={3} fade speed={0.4} />
-
-      <Earth />
-      <Atmosphere />
-
-      {/* Orbit tab */}
-      {showOrbit && (
-        <>
-          <OrbitPath positions={orbitResult!.positions} />
-          <Satellite positions={orbitResult!.positions} times={orbitResult!.times} />
-          {orbitResult!.ground_track && (
-            <GroundTrack track={orbitResult!.ground_track} />
-          )}
-        </>
-      )}
-
-      {/* Mission tab */}
-      {showMission && (
-        <>
-          <TransferOrbit points={missionResult!.transfer_points} />
-          <TargetOrbitRing altitude_km={satConfig.altitude_km} color="#38bdf8" />
-          <TargetOrbitRing altitude_km={missionConfig.target_altitude_km} color="#4ade80" />
-        </>
-      )}
-
-      {/* Ground tab */}
-      {showGround && (
-        <>
-          <GroundStationMarker lat={groundConfig.lat_deg} lon={groundConfig.lon_deg} />
-          {/* Show orbit + ground track in ground mode too */}
-          {orbitResult && <OrbitPath positions={orbitResult.positions} />}
-          {orbitResult?.ground_track && <GroundTrack track={orbitResult.ground_track} />}
-        </>
-      )}
-
-      <OrbitControls
-        enablePan={false}
-        minDistance={1.4}
-        maxDistance={20}
-        autoRotate={!orbitResult && !missionResult && !groundResult}
-        autoRotateSpeed={0.3}
-      />
-    </>
-  )
-}
-
-// ── Main export ───────────────────────────────────────────────────────────────
-export default function OrbitViewer() {
-  const { isLoading } = useStore()
-
-  return (
-    <div style={{ position: 'absolute', inset: 0, background: '#020409' }}>
-      <Canvas camera={{ position: [0, 2, 5], fov: 45 }} gl={{ antialias: true }}>
-        <Scene />
-      </Canvas>
-
-      {isLoading && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,4,9,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 32, height: 32, border: '2px solid #38bdf8', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ color: '#38bdf8', fontSize: 12, fontFamily: 'monospace' }}>Integrating equations of motion…</p>
-          </div>
-        </div>
-      )}
-
+    <div style={{ marginTop: 8, marginBottom: 12 }}>
+      {/* Bar */}
+      <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', gap: 1, marginBottom: 6 }}>
+        <div style={{ width: `${pct1}%`, background: C.burn, borderRadius: '6px 0 0 6px', opacity: 0.9 }} title={`Burn 1: ${dv1} m/s`} />
+        <div style={{ width: `${pct2}%`, background: '#fbbf24', borderRadius: '0 6px 6px 0', opacity: 0.9 }} title={`Burn 2: ${dv2} m/s`} />
+      </div>
       {/* Legend */}
-      <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 6, opacity: 0.6 }}>
-        {[
-          { color: '#38bdf8', label: 'orbit' },
-          { color: '#4ade80', label: 'ground track' },
-          { color: '#fb923c', label: 'transfer' },
-        ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748b' }}>{label}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, background: C.burn }} />
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.textDim }}>Burn 1 · {dv1} m/s</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, background: '#fbbf24' }} />
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.textDim }}>Burn 2 · {dv2} m/s</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Big stat highlight ────────────────────────────────────────────────────────
+function BigStat({ label, value, unit, color }: { label: string; value: string | number; unit: string; color: string }) {
+  return (
+    <div style={{ background: C.bg3, borderRadius: 10, padding: '12px 14px', marginBottom: 10, borderLeft: `3px solid ${color}` }}>
+      <div style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 22, fontFamily: 'monospace', fontWeight: 700, color }}>{value}</span>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted }}>{unit}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Pass card ─────────────────────────────────────────────────────────────────
+function PassCard({ pass, index, isNext }: { pass: { start_min: number; duration_min: number; max_elevation_deg: number }; index: number; isNext: boolean }) {
+  const elFraction = Math.min(pass.max_elevation_deg / 90, 1)
+  return (
+    <div style={{
+      background: isNext ? 'rgba(74,222,128,0.06)' : C.bg3,
+      border: `1px solid ${isNext ? 'rgba(74,222,128,0.25)' : C.border}`,
+      borderRadius: 8,
+      padding: '8px 10px',
+      marginBottom: 6,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ fontSize: 9, fontFamily: 'monospace', color: isNext ? C.ground : C.muted }}>
+          {isNext ? '▶ NEXT  ' : `Pass ${index + 1}`}
+        </span>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.ground }}>+{pass.start_min.toFixed(1)} min</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 10, fontFamily: 'monospace', color: C.textDim }}>{pass.duration_min.toFixed(1)} min</span>
+        {/* Elevation arc indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 48, height: 4, background: C.border, borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: `${elFraction * 100}%`, height: '100%', background: C.orbit, borderRadius: 2 }} />
           </div>
-        ))}
+          <span style={{ fontSize: 10, fontFamily: 'monospace', color: C.orbit }}>{pass.max_elevation_deg.toFixed(1)}°</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Tooltip styles ────────────────────────────────────────────────────────────
+const tooltipStyle = { background: C.bg2, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10 }
+const tickStyle = { fontSize: 9, fill: C.muted }
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function RightPanel() {
+  const { activeTab, orbitResult, missionResult, groundResult, error } = useStore()
+
+  const hasResult =
+    (activeTab === 'orbit'   && !!orbitResult)   ||
+    (activeTab === 'mission' && !!missionResult) ||
+    (activeTab === 'ground'  && !!groundResult)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: '"Space Grotesk", sans-serif' }}>
+      {/* Header */}
+      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {activeTab === 'orbit' ? 'Orbital Data' : activeTab === 'mission' ? 'Mission Data' : 'Ground Data'}
+        </span>
       </div>
 
-      {/* Watermark */}
-      <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)' }}>
-        <p style={{ color: '#0a1628', fontSize: 11, fontFamily: 'monospace' }}>SatLies — where the satellite lies</p>
-      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        {/* ── Error ── */}
+        {error && (
+          <div style={{ background: 'rgba(248,113,113,0.08)', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+            <p style={{ color: C.red, fontSize: 11, fontFamily: 'monospace' }}>Error: {error}</p>
+            <p style={{ color: C.muted, fontSize: 10, fontFamily: 'monospace', marginTop: 4 }}>Is the backend running on :8000?</p>
+          </div>
+        )}
+
+        {/* ── Empty state ── */}
+        {!hasResult && !error && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, color: C.muted }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>📡</div>
+            <p style={{ fontSize: 11, fontFamily: 'monospace', textAlign: 'center', lineHeight: 1.6 }}>
+              Configure parameters<br />and run a simulation
+            </p>
+          </div>
+        )}
+
+        {/* ── ORBIT RESULTS ── */}
+        {activeTab === 'orbit' && orbitResult && (
+          <>
+            <BigStat label="Orbital Period" value={orbitResult.period_min.toFixed(1)} unit="min" color={C.orbit} />
+
+            <Section title="Orbital Parameters">
+              <StatRow label="Apogee"          value={orbitResult.apogee_km}          unit="km" />
+              <StatRow label="Perigee"         value={orbitResult.perigee_km}         unit="km" />
+              <StatRow label="Semi-major axis" value={orbitResult.semi_major_axis_km} unit="km" />
+              <StatRow label="Data points"     value={orbitResult.num_points} />
+            </Section>
+
+            {orbitResult.ground_track && orbitResult.ground_track.length > 0 && (
+              <Section title="Ground Track">
+                <ChartBox label="latitude vs longitude">
+                  <ResponsiveContainer width="100%" height={110}>
+                    <LineChart data={orbitResult.ground_track.filter((_, i) => i % 4 === 0)}>
+                      <XAxis dataKey="lon" tick={tickStyle} tickLine={false} domain={[-180, 180]} tickCount={5} />
+                      <YAxis dataKey="lat" tick={tickStyle} tickLine={false} domain={[-90, 90]} tickCount={5} width={24} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}°`]} />
+                      <Line type="monotone" dataKey="lat" stroke={C.ground} dot={false} strokeWidth={1.2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </Section>
+            )}
+          </>
+        )}
+
+        {/* ── MISSION RESULTS ── */}
+        {activeTab === 'mission' && missionResult && (
+          <>
+            <BigStat label="Total Δv" value={missionResult.dv_total_ms.toFixed(0)} unit="m/s" color={C.burn} />
+
+            <Section title="Delta-V Breakdown">
+              <DvBar dv1={missionResult.dv1_ms} dv2={missionResult.dv2_ms} total={missionResult.dv_total_ms} />
+              <StatRow label="Burn 1 — raise apogee"  value={missionResult.dv1_ms} unit="m/s" accent={C.burn} />
+              <StatRow label="Burn 2 — circularize"   value={missionResult.dv2_ms} unit="m/s" accent="#fbbf24" />
+            </Section>
+
+            <Section title="Transfer Orbit">
+              <StatRow label="Semi-major axis" value={missionResult.transfer_semi_major_axis_km} unit="km" />
+              <StatRow label="Eccentricity"    value={missionResult.eccentricity_transfer} />
+              <StatRow label="Transfer time"   value={missionResult.transfer_time_min.toFixed(1)} unit="min" />
+            </Section>
+
+            <Section title="Fuel Estimate">
+              <BigStat label="Fuel consumed" value={missionResult.fuel_mass_kg.toFixed(1)} unit="kg" color="#a78bfa" />
+              <StatRow label="Initial velocity" value={missionResult.initial_velocity_ms} unit="m/s" />
+              <StatRow label="Target velocity"  value={missionResult.target_velocity_ms}  unit="m/s" />
+            </Section>
+          </>
+        )}
+
+        {/* ── GROUND RESULTS ── */}
+        {activeTab === 'ground' && groundResult && (
+          <>
+            {groundResult.next_pass ? (
+              <BigStat
+                label="Next visible pass"
+                value={groundResult.next_pass.start_min.toFixed(1)}
+                unit="min away"
+                color={C.ground}
+              />
+            ) : (
+              <div style={{ background: C.bg3, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                <p style={{ color: C.muted, fontSize: 11, fontFamily: 'monospace' }}>No visible passes in window.</p>
+                <p style={{ color: C.border, fontSize: 10, fontFamily: 'monospace', marginTop: 4 }}>Try increasing periods or adjusting inclination.</p>
+              </div>
+            )}
+
+            <Section title="Summary">
+              <StatRow label="Total passes"      value={groundResult.num_passes} />
+              <StatRow label="Orbital period"    value={groundResult.period_min.toFixed(1)} unit="min" />
+              <StatRow label="Sim duration"      value={(groundResult.simulated_periods * groundResult.period_min).toFixed(0)} unit="min" />
+            </Section>
+
+            {groundResult.passes.length > 0 && (
+              <Section title={`All Passes (${groundResult.passes.length})`}>
+                {groundResult.passes.slice(0, 8).map((p, i) => (
+                  <PassCard key={i} pass={p} index={i} isNext={i === 0} />
+                ))}
+              </Section>
+            )}
+
+            {groundResult.elevations_deg.length > 0 && (
+              <Section title="Elevation Profile">
+                <ChartBox label="elevation angle over time">
+                  <ResponsiveContainer width="100%" height={110}>
+                    <AreaChart
+                      data={groundResult.elevations_deg
+                        .filter((_, i) => i % 8 === 0)
+                        .map((el, i) => ({ t: i, el: Math.max(0, el) }))}
+                    >
+                      <defs>
+                        <linearGradient id="elGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor={C.ground} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={C.ground} stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="t" hide />
+                      <YAxis tick={tickStyle} tickLine={false} domain={[0, 90]} tickCount={4} width={24} />
+                      <ReferenceLine y={5} stroke={C.muted} strokeDasharray="3 3" strokeWidth={0.8} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v.toFixed(1)}°`, 'elevation']} />
+                      <Area type="monotone" dataKey="el" stroke={C.ground} fill="url(#elGrad)" strokeWidth={1.5} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+                <p style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, marginTop: 4 }}>dashed line = 5° min elevation</p>
+              </Section>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
