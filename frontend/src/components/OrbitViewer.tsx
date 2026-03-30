@@ -61,7 +61,6 @@ function OrbitPath({ positions }: { positions: [number, number, number][] }) {
 }
 
 // ── Ground track line on Earth surface ───────────────────────────────────────
-// Splits the track into segments whenever there's a big lon jump (antimeridian wrap)
 function GroundTrack({ track }: { track: GroundPoint[] }) {
   const segments = useMemo(() => {
     if (track.length < 2) return []
@@ -75,7 +74,6 @@ function GroundTrack({ track }: { track: GroundPoint[] }) {
       if (i > 0) {
         const lonDiff = Math.abs(track[i].lon - track[i - 1].lon)
         if (lonDiff > 180) {
-          // Antimeridian crossing — start a new segment
           if (current.length > 1) segs.push(current)
           current = []
         }
@@ -91,42 +89,28 @@ function GroundTrack({ track }: { track: GroundPoint[] }) {
   return (
     <>
       {segments.map((seg, i) => (
-        <Line
-          key={i}
-          points={seg}
-          color="#4ade80"
-          lineWidth={1.2}
-          transparent
-          opacity={0.6}
-        />
+        <Line key={i} points={seg} color="#4ade80" lineWidth={1.2} transparent opacity={0.6} />
       ))}
     </>
   )
 }
 
 // ── Satellite dot ─────────────────────────────────────────────────────────────
-// simSpeed: how many seconds of sim time pass per real second
-// e.g. simSpeed=60 means 1 real second = 1 sim minute (good for LEO ~92 min period)
-const SIM_SPEED = 60 // 1 real second = 60 sim seconds
+const SIM_SPEED = 60
 
 function Satellite({ positions, times }: { positions: [number, number, number][]; times: number[] }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const simTimeRef = useRef(0) // accumulated simulation time in seconds
+  const simTimeRef = useRef(0)
 
-  // Reset to start whenever a new simulation comes in
   useEffect(() => { simTimeRef.current = 0 }, [positions])
 
   useFrame((_, delta) => {
     if (!meshRef.current || positions.length === 0 || times.length === 0) return
 
-    // Advance sim time
     simTimeRef.current += delta * SIM_SPEED
-
-    // Wrap around when we exceed the simulation duration
     const totalDuration = times[times.length - 1]
     simTimeRef.current = simTimeRef.current % totalDuration
 
-    // Binary search for the closest time index
     let lo = 0, hi = times.length - 1
     while (lo < hi) {
       const mid = (lo + hi) >> 1
@@ -151,12 +135,10 @@ function Satellite({ positions, times }: { positions: [number, number, number][]
 function GroundStationMarker({ lat, lon }: { lat: number; lon: number }) {
   const pos = latLonToVec3(lat, lon, 1.012)
 
-  // Horizon cone — a faint disc showing the ~5° visibility footprint
   const conePoints = useMemo(() => {
     const pts: THREE.Vector3[] = []
-    const horizonRadius = 0.18  // approximate visibility footprint in scene units
+    const horizonRadius = 0.18
     const normal = latLonToVec3(lat, lon, 1.0).normalize()
-    // Build two perpendicular vectors to normal
     const up = Math.abs(normal.y) < 0.99 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
     const tangent1 = new THREE.Vector3().crossVectors(normal, up).normalize()
     const tangent2 = new THREE.Vector3().crossVectors(normal, tangent1).normalize()
@@ -174,13 +156,11 @@ function GroundStationMarker({ lat, lon }: { lat: number; lon: number }) {
 
   return (
     <>
-      {/* Station dot */}
       <mesh position={[pos.x, pos.y, pos.z]}>
         <sphereGeometry args={[0.018, 10, 10]} />
         <meshBasicMaterial color="#4ade80" />
         <pointLight color="#4ade80" intensity={0.4} distance={0.4} />
       </mesh>
-      {/* Visibility footprint ring */}
       <Line points={conePoints} color="#4ade80" lineWidth={0.8} transparent opacity={0.3} />
     </>
   )
@@ -227,18 +207,14 @@ function Scene() {
       <Earth />
       <Atmosphere />
 
-      {/* Orbit tab */}
       {showOrbit && (
         <>
           <OrbitPath positions={orbitResult!.positions} />
           <Satellite positions={orbitResult!.positions} times={orbitResult!.times} />
-          {orbitResult!.ground_track && (
-            <GroundTrack track={orbitResult!.ground_track} />
-          )}
+          {orbitResult!.ground_track && <GroundTrack track={orbitResult!.ground_track} />}
         </>
       )}
 
-      {/* Mission tab */}
       {showMission && (
         <>
           <TransferOrbit points={missionResult!.transfer_points} />
@@ -247,11 +223,9 @@ function Scene() {
         </>
       )}
 
-      {/* Ground tab */}
       {showGround && (
         <>
           <GroundStationMarker lat={groundConfig.lat_deg} lon={groundConfig.lon_deg} />
-          {/* Show orbit + ground track in ground mode too */}
           {orbitResult && <OrbitPath positions={orbitResult.positions} />}
           {orbitResult?.ground_track && <GroundTrack track={orbitResult.ground_track} />}
         </>
@@ -278,32 +252,45 @@ export default function OrbitViewer() {
         <Scene />
       </Canvas>
 
+      {/* Loading overlay */}
       {isLoading && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,4,9,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 32, height: 32, border: '2px solid #38bdf8', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ color: '#38bdf8', fontSize: 12, fontFamily: 'monospace' }}>Integrating equations of motion…</p>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,4,9,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 36, height: 36, border: '2px solid #38bdf8', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ color: '#e2e8f0', fontSize: 14, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600 }}>
+              Integrating equations of motion…
+            </p>
           </div>
         </div>
       )}
 
       {/* Legend */}
-      <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 6, opacity: 0.6 }}>
+      <div style={{
+        position: 'absolute', top: 14, right: 14,
+        display: 'flex', flexDirection: 'column', gap: 8,
+        background: 'rgba(3,8,18,0.7)', borderRadius: 8,
+        padding: '10px 14px',
+        border: '1px solid #0a1628',
+      }}>
         {[
-          { color: '#38bdf8', label: 'orbit' },
-          { color: '#4ade80', label: 'ground track' },
-          { color: '#fb923c', label: 'transfer' },
+          { color: '#38bdf8', label: 'Orbit' },
+          { color: '#4ade80', label: 'Ground Track' },
+          { color: '#fb923c', label: 'Transfer' },
         ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#ffffff' }}>{label}</span>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600, color: '#e2e8f0' }}>
+              {label}
+            </span>
           </div>
         ))}
       </div>
 
       {/* Watermark */}
       <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)' }}>
-        <p style={{ color: '#1e3a5f', fontSize: 11, fontFamily: 'monospace' }}>SatLies — where the satellite lies</p>
+        <p style={{ color: '#334155', fontSize: 12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 500, whiteSpace: 'nowrap' }}>
+          SatLies — where the satellite lies
+        </p>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

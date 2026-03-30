@@ -10,11 +10,13 @@ const C = {
   orbit:   '#38bdf8',
   ground:  '#4ade80',
   burn:    '#fb923c',
-  muted:   '#ffffff',
+  muted:   '#94a3b8',   // readable slate-400 across both panels
   textDim: '#e2e8f0',
   text:    '#ffffff',
   white:   '#ffffff',
 }
+
+const FONT = '"Space Grotesk", sans-serif'
 
 // ── Preset satellites ─────────────────────────────────────────────────────────
 const PRESETS = [
@@ -31,11 +33,11 @@ function SliderRow({ label, value, min, max, step = 1, unit = '', onChange, colo
 }) {
   const pct = ((value - min) / (max - min)) * 100
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
-        <span style={{ fontSize: 13, fontFamily: 'monospace', color }}>
-          {value}<span style={{ color: C.muted, fontSize: 9 }}>{unit}</span>
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+        <span style={{ fontSize: 12, fontFamily: FONT, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+        <span style={{ fontSize: 14, fontFamily: FONT, fontWeight: 800, color }}>
+          {value}<span style={{ color: C.muted, fontSize: 11, fontWeight: 500 }}>{unit}</span>
         </span>
       </div>
       <div style={{ position: 'relative', height: 4, background: C.border, borderRadius: 2 }}>
@@ -53,7 +55,7 @@ function SliderRow({ label, value, min, max, step = 1, unit = '', onChange, colo
 // ── Section divider ───────────────────────────────────────────────────────────
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 12 }}>
+    <div style={{ fontSize: 12, fontFamily: FONT, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.06em', paddingBottom: 8, borderBottom: `1px solid ${C.border}`, marginBottom: 12 }}>
       {children}
     </div>
   )
@@ -63,11 +65,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function Toggle({ active, onToggle, label }: { active: boolean; onToggle: () => void; label: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-      <span style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+      <span style={{ fontSize: 12, fontFamily: FONT, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
       <button
         onClick={onToggle}
         style={{
-          padding: '3px 10px', borderRadius: 4, fontSize: 10, fontFamily: 'monospace', cursor: 'pointer',
+          padding: '4px 12px', borderRadius: 4, fontSize: 11, fontFamily: FONT, fontWeight: 700, cursor: 'pointer',
           background: active ? 'rgba(56,189,248,0.12)' : C.bg3,
           color: active ? C.orbit : C.muted,
           border: `1px solid ${active ? 'rgba(56,189,248,0.4)' : C.border}`,
@@ -125,13 +127,13 @@ export default function LeftPanel() {
                  : '▶  Track Passes'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: '"Space Grotesk", sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: FONT }}>
 
       {/* ── Header ── */}
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <span style={{ fontSize: 16 }}>🛰</span>
-        <span style={{ fontWeight: 600, color: C.white, letterSpacing: '-0.02em', fontSize: 15 }}>SatLies</span>
-        <span style={{ fontSize: 9, fontFamily: 'monospace', color: C.muted, marginLeft: 'auto' }}>v0.1</span>
+      <div style={{ padding: '13px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <span style={{ fontSize: 18 }}>🛰</span>
+        <span style={{ fontWeight: 800, color: C.white, letterSpacing: '-0.02em', fontSize: 16 }}>SatLies</span>
+        <span style={{ fontSize: 11, fontFamily: FONT, fontWeight: 600, color: C.muted, marginLeft: 'auto' }}>v0.1</span>
       </div>
 
       {/* ── Tab switcher ── */}
@@ -143,11 +145,11 @@ export default function LeftPanel() {
               key={t.id}
               onClick={() => setActiveTab(t.id)}
               style={{
-                flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontFamily: 'monospace',
+                flex: 1, padding: '7px 0', borderRadius: 6, fontSize: 12, fontFamily: FONT,
                 cursor: 'pointer', border: 'none', transition: 'all 0.15s',
                 background: active ? t.color : 'transparent',
                 color: active ? C.bg : C.muted,
-                fontWeight: active ? 700 : 400,
+                fontWeight: active ? 800 : 600,
               }}
             >
               {t.label}
@@ -168,7 +170,7 @@ export default function LeftPanel() {
                 key={p.label}
                 onClick={() => setSatConfig({ altitude_km: p.altitude_km, inclination_deg: p.inclination_deg, eccentricity: p.eccentricity })}
                 style={{
-                  padding: '5px 0', borderRadius: 6, fontSize: 10, fontFamily: 'monospace',
+                  padding: '6px 0', borderRadius: 6, fontSize: 12, fontFamily: FONT, fontWeight: 700,
                   cursor: 'pointer', border: `1px solid ${C.border}`,
                   background: C.bg3, color: C.textDim,
                   transition: 'all 0.15s',
@@ -214,14 +216,14 @@ export default function LeftPanel() {
             <SliderRow label="Min Elevation" value={groundConfig.min_elevation_deg} min={0}    max={45}   unit="°"   color={C.ground} onChange={v => setGroundConfig({ min_elevation_deg: v })} />
             <SliderRow label="Sim Periods"   value={groundConfig.num_periods}       min={1}    max={15}   step={1}   color={C.ground} onChange={v => setGroundConfig({ num_periods: v })} />
             <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Station Name</div>
+              <div style={{ fontSize: 12, fontFamily: FONT, fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Station Name</div>
               <input
                 type="text"
                 value={groundConfig.station_name}
                 onChange={e => setGroundConfig({ station_name: e.target.value })}
                 style={{
                   width: '100%', background: C.bg3, border: `1px solid ${C.border}`, borderRadius: 6,
-                  padding: '6px 10px', fontSize: 12, fontFamily: 'monospace', color: C.white,
+                  padding: '7px 10px', fontSize: 13, fontFamily: FONT, fontWeight: 600, color: C.white,
                   outline: 'none', boxSizing: 'border-box',
                 }}
                 onFocus={e => (e.target.style.borderColor = C.ground)}
@@ -238,16 +240,16 @@ export default function LeftPanel() {
           onClick={handleSimulate}
           disabled={isLoading}
           style={{
-            width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
+            width: '100%', padding: '11px 0', borderRadius: 8, border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
             background: isLoading ? C.bg3 : activeColor,
             color: isLoading ? C.muted : C.bg,
-            fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600, fontSize: 13,
+            fontFamily: FONT, fontWeight: 800, fontSize: 14,
             transition: 'all 0.15s', opacity: isLoading ? 0.6 : 1,
           }}
         >
           {isLoading ? (
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <span style={{ width: 12, height: 12, border: `2px solid ${C.muted}`, borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
+              <span style={{ width: 13, height: 13, border: `2px solid ${C.muted}`, borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
               Computing…
             </span>
           ) : btnLabel}
