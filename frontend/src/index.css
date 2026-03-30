@@ -3,36 +3,34 @@
 @tailwind utilities;
 
 @layer base {
-  * {
+  *, *::before, *::after {
     box-sizing: border-box;
-  }
-
-  html, body, #root {
-    height: 100%;
     margin: 0;
     padding: 0;
   }
 
+  html {
+    height: 100%;
+  }
+
   body {
+    height: 100%;
     background-color: #020409;
     color: #e2e8f0;
     font-family: 'Space Grotesk', sans-serif;
     overflow: hidden;
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
-  ::-webkit-scrollbar-track {
-    background: #030812;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #1e3a5f;
-    border-radius: 2px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #38bdf8;
-  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #030812; }
+  ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
 }
 
 @layer components {

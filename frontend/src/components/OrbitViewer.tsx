@@ -190,7 +190,7 @@ export default function OrbitViewer() {
   const { isLoading } = useStore()
 
   return (
-    <div className="relative w-full h-full bg-space-950">
+    <div style={{ position: "absolute", inset: 0, background: "#020409" }}>
       <Canvas
         camera={{ position: [0, 2, 5], fov: 45 }}
         gl={{ antialias: true }}
