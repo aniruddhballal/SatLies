@@ -54,7 +54,7 @@ Then open `http://localhost:5173`.
 
 ## Physics
 
-The simulator uses real astrodynamics — two-body Newtonian gravity, J2 perturbation, ECI→ECEF coordinate transforms, and Hohmann transfer math. All assumptions and limitations are documented in [`docs/write-up.md`](docs/write-up.md).
+The simulator uses real astrodynamics — two-body Newtonian gravity, J2 perturbation, ECI→ECEF coordinate transforms, and Hohmann transfer math. All assumptions and limitations are documented in [`write-up.md`](write-up.md).
 
 ---
 
