@@ -14,8 +14,8 @@ const C = {
   ground:    '#4ade80',
   burn:      '#fb923c',
   muted:     '#475569',
-  text:      '#f1f5f9',
-  textDim:   '#cbd5e1',
+  text:      '#ffffff',
+  textDim:   '#e2e8f0',
   red:       '#f87171',
 }
 

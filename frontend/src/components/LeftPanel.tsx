@@ -10,9 +10,9 @@ const C = {
   orbit:   '#38bdf8',
   ground:  '#4ade80',
   burn:    '#fb923c',
-  muted:   '#94a3b8',
-  textDim: '#cbd5e1',
-  text:    '#f1f5f9',
+  muted:   '#ffffff',
+  textDim: '#e2e8f0',
+  text:    '#ffffff',
   white:   '#ffffff',
 }
 
