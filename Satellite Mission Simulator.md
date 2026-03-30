@@ -133,10 +133,10 @@ Deployment        Frontend: Vercel / Netlify
 ┌─────────────────────────────────────────────────────────┐
 │                        Browser                          │
 │                                                         │
-│   ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
-│   │  Left Panel  │  │  Center View │  │ Right Panel │  │
-│   │  (Inputs)    │  │  (Three.js)  │  │  (Outputs)  │  │
-│   └──────┬───────┘  └──────┬───────┘  └──────┬──────┘  │
+│   ┌──────────────┐  ┌──────────────┐  ┌─────────────┐   │
+│   │  Left Panel  │  │  Center View │  │ Right Panel │   │
+│   │  (Inputs)    │  │  (Three.js)  │  │  (Outputs)  │   │
+│   └──────┬───────┘  └──────┬───────┘  └──────┬──────┘   │
 │          │                 │                 │          │
 │          └─────────────────┼─────────────────┘          │
 │                            │                            │
@@ -145,7 +145,7 @@ Deployment        Frontend: Vercel / Netlify
                              │ HTTP (REST / JSON)
                              ▼
 ┌─────────────────────────────────────────────────────────┐
-│                    FastAPI Backend                       │
+│                    FastAPI Backend                      │
 │                                                         │
 │   POST /simulate-orbit   → OrbitSimulator               │
 │   POST /plan-mission     → MissionPlanner               │
@@ -154,10 +154,10 @@ Deployment        Frontend: Vercel / Netlify
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────┐
-│                  Physics Engine (Python)                 │
+│                  Physics Engine (Python)                │
 │                                                         │
 │   orbit_simulator.py     (NumPy / SciPy ODE solver)     │
-│   mission_planner.py     (Hohmann transfer math)         │
+│   mission_planner.py     (Hohmann transfer math)        │
 │   ground_tracker.py      (ECI → ECEF → horizon)         │
 │   perturbations.py       (J2, drag models)              │
 └─────────────────────────────────────────────────────────┘
@@ -173,9 +173,9 @@ Deployment        Frontend: Vercel / Netlify
 
 ```
 ┌──────────────┬──────────────────────────────┬───────────────┐
-│  LEFT PANEL  │        CENTER (MAIN VIEW)     │  RIGHT PANEL  │
+│  LEFT PANEL  │        CENTER (MAIN VIEW)    │  RIGHT PANEL  │
 │              │                              │               │
-│  Satellite   │   🌍  3D Earth + Orbit       │  Orbital Data │
+│  Satellite   │     3D Earth + Orbit         │  Orbital Data │
 │  Config      │        (Three.js)            │               │
 │              │                              │  Period: Xs   │
 │  Mission     │   ──────────────────────     │  Alt: Xkm     │
