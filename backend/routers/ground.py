@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from typing import List
 from ground_tracker import GroundStation, compute_passes
 from orbit_simulator import OrbitalElements, simulate_orbit
 
@@ -17,6 +16,7 @@ class GroundTrackRequest(BaseModel):
     true_anomaly_deg: float = 0.0
     num_periods: float = Field(3.0, ge=1, le=20)
     num_points: int = Field(1000, ge=200, le=3000)
+    use_j2: bool = False  # was missing — J2 toggle now wired through
 
     # Ground station params
     lat_deg: float = Field(0.0, ge=-90, le=90)
@@ -35,7 +35,12 @@ def get_passes(req: GroundTrackRequest):
         arg_perigee_deg=req.arg_perigee_deg,
         true_anomaly_deg=req.true_anomaly_deg,
     )
-    orbit_data = simulate_orbit(elements, num_periods=req.num_periods, num_points=req.num_points)
+    orbit_data = simulate_orbit(
+        elements,
+        num_periods=req.num_periods,
+        num_points=req.num_points,
+        use_j2=req.use_j2,
+    )
 
     station = GroundStation(
         lat_deg=req.lat_deg,
