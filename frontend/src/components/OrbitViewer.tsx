@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Stars, Line } from '@react-three/drei'
 import * as THREE from 'three'
@@ -105,22 +105,36 @@ function GroundTrack({ track }: { track: GroundPoint[] }) {
 }
 
 // ── Satellite dot ─────────────────────────────────────────────────────────────
-function Satellite({ positions }: { positions: [number, number, number][] }) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const indexRef = useRef(0)
-  const timeAccRef = useRef(0)
+// simSpeed: how many seconds of sim time pass per real second
+// e.g. simSpeed=60 means 1 real second = 1 sim minute (good for LEO ~92 min period)
+const SIM_SPEED = 60 // 1 real second = 60 sim seconds
 
-  // Step through positions at ~60 steps/sec of sim time
+function Satellite({ positions, times }: { positions: [number, number, number][]; times: number[] }) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const simTimeRef = useRef(0) // accumulated simulation time in seconds
+
+  // Reset to start whenever a new simulation comes in
+  useEffect(() => { simTimeRef.current = 0 }, [positions])
+
   useFrame((_, delta) => {
-    if (!meshRef.current || positions.length === 0) return
-    timeAccRef.current += delta
-    const stepsPerSecond = Math.max(1, Math.floor(positions.length / 30))
-    const steps = Math.floor(timeAccRef.current * stepsPerSecond)
-    if (steps > 0) {
-      indexRef.current = (indexRef.current + steps) % positions.length
-      timeAccRef.current = 0
+    if (!meshRef.current || positions.length === 0 || times.length === 0) return
+
+    // Advance sim time
+    simTimeRef.current += delta * SIM_SPEED
+
+    // Wrap around when we exceed the simulation duration
+    const totalDuration = times[times.length - 1]
+    simTimeRef.current = simTimeRef.current % totalDuration
+
+    // Binary search for the closest time index
+    let lo = 0, hi = times.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (times[mid] < simTimeRef.current) lo = mid + 1
+      else hi = mid
     }
-    const [x, y, z] = positions[indexRef.current]
+
+    const [x, y, z] = positions[lo]
     meshRef.current.position.set(toUnit(x), toUnit(z), toUnit(y))
   })
 
@@ -217,7 +231,7 @@ function Scene() {
       {showOrbit && (
         <>
           <OrbitPath positions={orbitResult!.positions} />
-          <Satellite positions={orbitResult!.positions} />
+          <Satellite positions={orbitResult!.positions} times={orbitResult!.times} />
           {orbitResult!.ground_track && (
             <GroundTrack track={orbitResult!.ground_track} />
           )}
