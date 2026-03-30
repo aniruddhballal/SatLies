@@ -1,6 +1,6 @@
 # 🛰️ SatLies — Project Blueprint
 
-> **SatLies** — *where the satellite lies.*
+> **SatLies** - *where the satellite lies.*
 
 > **Vision:** An end-to-end satellite mission simulator, planner, and tracker. A user defines a satellite, simulates its orbit, plans its mission, and sees when and where it's visible from Earth.
 

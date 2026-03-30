@@ -210,7 +210,7 @@ export default function OrbitViewer() {
 
       {/* Watermark */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-        <p className="text-space-700 text-xs font-mono">SatLies — where the satellite lies</p>
+        <p className="text-space-700 text-xs font-mono">SatLies - where the satellite lies</p>
       </div>
 
       {/* Axis legend */}
